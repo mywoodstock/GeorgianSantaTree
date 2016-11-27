@@ -3,6 +3,7 @@
 
 #include <iostream>
 #include <string>
+#include <vector>
  
 enum Character { None = -1, A = 0, C, G, T, $ };
 const Character END_CHAR_ = $;
@@ -42,6 +43,16 @@ std::string char_value(Character c) {
 } // char_value()
 
 
+typedef struct SubStringID SubStringID;
+
+struct SubStringID {
+  int document_num_;
+  int line_num_;
+  int character_num_;
+  SubStringID(): document_num_(-1), line_num_(-1), character_num_(-1) { }
+  SubStringID(int d, int l, int c): document_num_(d), line_num_(l), character_num_(c) { }
+}; // struct SubStringID
+
 
 /**
  * Leaf node: this is attached to the leaves of the suffix tree to store necessary information
@@ -52,8 +63,13 @@ typedef struct LeafNode LeafNode;
 struct LeafNode {
   int string_id_;   // id of the corresponding string
   int position_;    // position where the corresponding suffix starts in the string
+  std::vector<SubStringID> substring_ids_;
   LeafNode *next_;  // pointer to next leaf node in the tree (in sequence)
   LeafNode(): string_id_(-1), position_(-1), next_(NULL) { }
+  LeafNode(int d, int s, int p): string_id_(s), position_(p), next_(NULL) {
+    substring_ids_.push_back(SubStringID(d, s, p));
+  } // LeafNode()
+  void add_substring(int d, int s, int p) { substring_ids_.push_back(SubStringID(d, s, p)); }
 }; // struct LeafNode
 
 
@@ -103,6 +119,14 @@ class SuffixNode {
       for(auto i = 0; i < MAX_CHILDREN_; ++ i) std::cout << children_[i] << " ";
       std::cout << "], parent_: " << parent_ << ", suffix_link_: " << suffix_link_
                 << ", leaf_: " << leaf_ << " }" << std::endl;
+      if(leaf_ != NULL) {
+        std::cout << "\tsubstring_ids_: ";
+        for(auto i = leaf_->substring_ids_.begin(); i != leaf_->substring_ids_.end(); ++ i) {
+          std::cout << "(" << (*i).document_num_ << ", " << (*i).line_num_ << ", "
+                    << (*i).character_num_ << ") ";
+        } // for
+        std::cout << std::endl;
+      } // if
     } // print()
 
     friend class GeneralizedSuffixTree;
@@ -154,7 +178,7 @@ class GeneralizedSuffixTree {
     /**
      * insert the suffix starting at 'begin' into the tree
      */
-    void insert_suffix(int string_num, const std::string& s, int begin) {
+    void insert_suffix(const int string_num, const std::string& s, const int begin) {
 
       std::cout << " ** inserting suffix " << begin << ": " << s.substr(begin) << std::endl;
 
@@ -181,12 +205,12 @@ class GeneralizedSuffixTree {
         curr_node_->children_[c]->end_ = s.size() - 1;
         curr_node_->children_[c]->string_id_ = string_num;
         curr_node_->children_[c]->parent_ = curr_node_;
-        curr_node_->children_[c]->leaf_ = new LeafNode();
+        curr_node_->children_[c]->leaf_ = new LeafNode(0, string_num, begin);
         curr_node_->children_[c]->node_id_ = num_nodes_ ++;
         last_node_ = curr_node_;
 
-        std::cout << "** adding leaf: ";
-        curr_node_->children_[c]->print();
+        //std::cout << "** adding leaf: ";
+        //curr_node_->children_[c]->print();
 
       } else {
 
@@ -215,19 +239,32 @@ class GeneralizedSuffixTree {
             curr_node_->children_[c]->end_ = s.size() - 1;
             curr_node_->children_[c]->string_id_ = string_num;
             curr_node_->children_[c]->parent_ = curr_node_;
-            curr_node_->children_[c]->leaf_ = new LeafNode();
+            curr_node_->children_[c]->leaf_ = new LeafNode(0, string_num, begin);
             curr_node_->children_[c]->node_id_ = num_nodes_ ++;
             last_node_ = curr_node_;
             added = true;
 
-            std::cout << "** adding another leaf: ";
-            curr_node_->children_[c]->print();
+            //std::cout << "** adding another leaf: ";
+            //curr_node_->children_[c]->print();
 
             break;
           } // if
 
           a = curr_node_->children_[c]->begin_;
           if(a >= s.size() - 1) {
+            std::cout << " ++ ++ " << a << " " << s.size() - 1 << " " << c << std::endl;
+            if(curr_node_->children_[c]->children_[$] == NULL) {
+              curr_node_->children_[c]->children_[$] = new SuffixNode();
+              curr_node_->children_[c]->children_[$]->begin_ = b;
+              curr_node_->children_[c]->children_[$]->end_ = s.size() - 1;
+              curr_node_->children_[c]->children_[$]->string_id_ = string_num;
+              curr_node_->children_[c]->children_[$]->parent_ = curr_node_->children_[c];
+              curr_node_->children_[c]->children_[$]->leaf_ = new LeafNode(0, string_num, begin);
+              curr_node_->children_[c]->children_[$]->node_id_ = num_nodes_ ++;
+              last_node_ = curr_node_->children_[c];
+            } else {
+              curr_node_->children_[c]->leaf_->add_substring(0, string_num, begin);
+            } // if
             added = true;
             break;
           } // if
@@ -254,7 +291,7 @@ class GeneralizedSuffixTree {
           new_child->begin_ = b + 1;
           new_child->end_ = s.size() - 1;
           new_child->string_id_ = string_num;
-          new_child->leaf_ = new LeafNode();
+          new_child->leaf_ = new LeafNode(0, string_num, begin);
           new_child->node_id_ = num_nodes_ ++;
 
           curr_node_->children_[c]->parent_ = new_node;
@@ -265,10 +302,10 @@ class GeneralizedSuffixTree {
           last_node_ = new_node;
           curr_node_ = new_node;
 
-          std::cout << "** adding node: ";
-          new_node->print();
-          std::cout << "** and a leaf: ";
-          new_child->print();
+          //std::cout << "** adding node: ";
+          //new_node->print();
+          //std::cout << "** and a leaf: ";
+          //new_child->print();
         } // if
       } // if-else
 
