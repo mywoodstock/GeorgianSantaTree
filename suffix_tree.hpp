@@ -168,26 +168,27 @@ class GeneralizedSuffixTree {
      * construct a suffix tree with a single string
      * process is to insert all suffixes of given string into the tree
      */
-    void add_string(const std::string& s) {
+    void add_string(const int doc_num, const int str_num, const std::string& s) {
       strings_.push_back(s);
       int string_id = strings_.size() - 1;
-      for(auto i = 0; i < s.size() - 1; ++ i) insert_suffix(string_id, s, i);
+      for(auto i = 0; i < s.size() - 1; ++ i) insert_suffix(doc_num, str_num, string_id, s, i);
     } // add_string()
 
 
     /**
      * insert the suffix starting at 'begin' into the tree
      */
-    void insert_suffix(const int string_num, const std::string& s, const int begin) {
+    void insert_suffix(const int doc_num, const int string_num,
+                       const int string_id, const std::string& s, const int begin) {
 
-      std::cout << " ** inserting suffix " << begin << ": " << s.substr(begin) << std::endl;
+      //std::cout << " ** inserting suffix " << begin << ": " << s.substr(begin) << std::endl;
 
       if(root_ == NULL) {
         root_ = new SuffixNode();
         root_->suffix_link_ = root_;    // root has self loop suffix link
         root_->begin_ = -1;
         root_->end_ = -1;
-        root_->string_id_ = string_num;
+        root_->string_id_ = string_id;
         root_->node_id_ = num_nodes_ ++;
         curr_node_ = root_;
         last_node_ = root_;
@@ -195,7 +196,7 @@ class GeneralizedSuffixTree {
 
       curr_node_ = curr_node_->suffix_link_;
       curr_node_ = root_;
-      int c = char_name(s.at(begin), string_num);
+      int c = char_name(s.at(begin), string_id);
 
       if(curr_node_->children_[c] == NULL) {
 
@@ -203,9 +204,9 @@ class GeneralizedSuffixTree {
         curr_node_->children_[c] = new SuffixNode();
         curr_node_->children_[c]->begin_ = begin;
         curr_node_->children_[c]->end_ = s.size() - 1;
-        curr_node_->children_[c]->string_id_ = string_num;
+        curr_node_->children_[c]->string_id_ = string_id;
         curr_node_->children_[c]->parent_ = curr_node_;
-        curr_node_->children_[c]->leaf_ = new LeafNode(0, string_num, begin);
+        curr_node_->children_[c]->leaf_ = new LeafNode(doc_num, string_num, begin);
         curr_node_->children_[c]->node_id_ = num_nodes_ ++;
         last_node_ = curr_node_;
 
@@ -229,7 +230,7 @@ class GeneralizedSuffixTree {
           } // if
           // follow the corresponding child node
           curr_node_ = curr_node_->children_[c];
-          c = char_name(s.at(b), string_num);
+          c = char_name(s.at(b), string_id);
           if(curr_node_->children_[c] == NULL) {
             // this is the case where the curr_node_ does not have a c child
             // as it might have been constructed from another previous string
@@ -237,9 +238,9 @@ class GeneralizedSuffixTree {
             curr_node_->children_[c] = new SuffixNode();
             curr_node_->children_[c]->begin_ = b;
             curr_node_->children_[c]->end_ = s.size() - 1;
-            curr_node_->children_[c]->string_id_ = string_num;
+            curr_node_->children_[c]->string_id_ = string_id;
             curr_node_->children_[c]->parent_ = curr_node_;
-            curr_node_->children_[c]->leaf_ = new LeafNode(0, string_num, begin);
+            curr_node_->children_[c]->leaf_ = new LeafNode(doc_num, string_num, begin);
             curr_node_->children_[c]->node_id_ = num_nodes_ ++;
             last_node_ = curr_node_;
             added = true;
@@ -257,13 +258,13 @@ class GeneralizedSuffixTree {
               curr_node_->children_[c]->children_[$] = new SuffixNode();
               curr_node_->children_[c]->children_[$]->begin_ = b;
               curr_node_->children_[c]->children_[$]->end_ = s.size() - 1;
-              curr_node_->children_[c]->children_[$]->string_id_ = string_num;
+              curr_node_->children_[c]->children_[$]->string_id_ = string_id;
               curr_node_->children_[c]->children_[$]->parent_ = curr_node_->children_[c];
-              curr_node_->children_[c]->children_[$]->leaf_ = new LeafNode(0, string_num, begin);
+              curr_node_->children_[c]->children_[$]->leaf_ = new LeafNode(doc_num, string_num, begin);
               curr_node_->children_[c]->children_[$]->node_id_ = num_nodes_ ++;
               last_node_ = curr_node_->children_[c];
             } else {
-              curr_node_->children_[c]->leaf_->add_substring(0, string_num, begin);
+              curr_node_->children_[c]->leaf_->add_substring(doc_num, string_num, begin);
             } // if
             added = true;
             break;
@@ -283,15 +284,15 @@ class GeneralizedSuffixTree {
           new_node->children_[char_name(strings_[curr_node_->children_[c]->string_id_].at(a + 1),
                                         curr_node_->children_[c]->string_id_)]
             = curr_node_->children_[c];
-          new_node->children_[char_name(s.at(b + 1), string_num)] = new_child;
+          new_node->children_[char_name(s.at(b + 1), string_id)] = new_child;
           new_node->suffix_link_ = root_;
           new_node->node_id_ = num_nodes_ ++;
         
           new_child->parent_ = new_node;
           new_child->begin_ = b + 1;
           new_child->end_ = s.size() - 1;
-          new_child->string_id_ = string_num;
-          new_child->leaf_ = new LeafNode(0, string_num, begin);
+          new_child->string_id_ = string_id;
+          new_child->leaf_ = new LeafNode(doc_num, string_num, begin);
           new_child->node_id_ = num_nodes_ ++;
 
           curr_node_->children_[c]->parent_ = new_node;
