@@ -32,7 +32,7 @@ int main(int narg, char** args) {
       return -1;
     } // if
 
-    cout << "** inserting strings from document " << *i << endl;
+    cout << "** pre-processing strings from document " << *i << endl;
 
     int str_num = 0;
     while(1) {
@@ -47,7 +47,34 @@ int main(int narg, char** args) {
     ++ doc_num;
   } // for
 
-  st.print_tree();
+  //st.print_tree();
+
+  // perform the queries
+  ifstream fq(queries);
+  if(!fq.is_open()) {
+    cerr << "error: failed to open queries file " << queries << endl;
+    return -1;
+  } // if
+  while(1) {
+    string s;
+    fq >> s;
+    if(fq.eof()) break;
+    vector<SubStringID> result;
+    cout << s << ": ";
+    if(st.search(s, result)) {
+      cout << "found." << endl;
+      for(auto i = result.begin(); i != result.end(); ++ i) {
+        cout << "\t[ " << i->document_num_
+             << "\t" << i->line_num_
+             << "\t" << i->character_num_
+             << "\t]" << endl;
+      } // for
+    } else {
+      cout << " not found." << endl;
+    } // if-else
+    cout << endl;
+  } // while
+  fq.close();
 
   return 0;
 } // main()
