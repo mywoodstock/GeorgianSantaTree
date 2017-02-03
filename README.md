@@ -1,0 +1,2 @@
+# GeorgianSantaTree
+Generalized Suffix Tree
